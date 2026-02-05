@@ -95,9 +95,7 @@ class CompanyLoop:
 
     def fetch_company_details_from_sudreg(self):
         all = self.db.get_all_companies()
-        companies = [c for c in all if not c.status]
-
-        self.sudreg_service.fetch_company_details(companies)
+        self.sudreg_service.fetch_company_details(all)
 
     def export_companies_to_csv(self):
         file_path = input("Enter the path to the CSV file: ")

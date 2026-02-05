@@ -1,4 +1,6 @@
 import csv
+import os
+import json
 from config import Config
 from termcolor import colored
 from sudreg_api import SudregApiClient
@@ -47,28 +49,31 @@ class SudregService:
 
         return self.db.get_all_companies()
 
-    def fetch_company_details(self, companies: list[Company], store_details_locally: bool = True):
+    def fetch_company_details(self, companies: list[Company]):
         processed_count = 0
 
         print(f"Fetching company details for {colored(str(len(companies)), 'yellow')} companies")
         print()
+
         choice = input("Continue? [y/N] ") or "n"
         if choice.lower() != "y":
             return
 
         for c in companies:
+            details_filename = f"data/details/{c.mbs}.json"
+            if os.path.exists(details_filename):
+                continue
+
             try:
                 details = self.sudreg_api.get_company_details_by_mbs(c.mbs)
                 c.inject_details(details)
                 processed_count += 1
-                print(colored(c.oib, 'green'), c.ime)
 
+                self.store_company_details_locally(c.mbs, details)
+                print(colored(c.oib, 'green'), c.ime)
                 if processed_count % 5 == 0:
                     self.save_db()
                     self.print_fetch_company_details_job_status(processed_count, len(companies) - processed_count)
-
-                if store_details_locally:
-                    self.store_company_details_locally(c.mbs, details)
 
             except Exception as e:
                 print(f"Error fetching company details for {colored(c.mbs, 'yellow')} {colored(c.ime, 'green')}: {e}")
@@ -76,7 +81,7 @@ class SudregService:
 
     def store_company_details_locally(self, filename: str, details: dict):
         with open(f'data/details/{filename}.json', 'w') as f:
-            f.write(details)
+            json.dump(details, f, indent=2)
 
     def print_fetch_all_job_status(self, batch_count: int, total_count: int, offset: int):
         msg = f"Fetched {colored(str(batch_count), 'yellow')} companies. Total companies: {colored(str(total_count), 'yellow')}, current offset: {colored(str(offset), 'yellow')}."
