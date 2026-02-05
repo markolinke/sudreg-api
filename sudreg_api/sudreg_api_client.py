@@ -66,6 +66,10 @@ class SudregApiClient:
         response = self.get_response(endpoint)
         return response
 
-    def get_company_details(self, oib: str) -> dict:
+    def get_company_details_by_oib(self, oib: str) -> dict:
         endpoint = f"api/javni/detalji_subjekta?tip_identifikatora=OIB&identifikator={oib}&expand_relations=true"
+        return self.get_response(endpoint)
+
+    def get_company_details_by_mbs(self, mbs: str) -> dict:
+        endpoint = f"api/javni/detalji_subjekta?tip_identifikatora=MBS&identifikator={mbs}&expand_relations=true"
         return self.get_response(endpoint)

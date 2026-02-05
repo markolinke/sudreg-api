@@ -2,15 +2,21 @@ import json
 from config import Config
 from sudreg_api import SudregApiClient
 from termcolor import colored
+from services import SudregService
+from db import Database
 
 class CompanyLoop:
     config: Config
     sudreg_api: SudregApiClient
+    sudreg_service: SudregService
+    db: Database
 
     def __init__(self, config: Config):
         self.config = config
         self.sudreg_api = SudregApiClient(config)
         self.sudreg_api.authenticate()
+        self.db = Database(self.config.db_file_path)
+        self.sudreg_service = SudregService(self.sudreg_api, self.db, self.config)
 
     def print_table(self, data: dict, title_length: int = 20, header: bool = False):
         if header:
@@ -48,7 +54,7 @@ class CompanyLoop:
         oib = input("Enter OIB or 'ALL' (empty to exit) [99336354871]: ") or "99336354871"
 
         while oib.strip() != "":
-            details = self.sudreg_api.get_company_details(oib)
+            details = self.sudreg_api.get_company_details_by_oib(oib)
             self.print_company_intro(details)
 
             # print details in json format, properly formatted
@@ -63,29 +69,39 @@ class CompanyLoop:
                 print("Invalid choice")
                 return
 
-    def loop_all_companies(self):
-        offset = 0
-
-        while True:
-            companies = self.sudreg_api.get_company_list(offset)
-            if len(companies) == 0:
-                break
-
-            for company in companies:
-                if str(company['ime']).lower().find('za graditeljstvo') > 1:
-                    print(colored(company['mbs'], 'yellow'), colored(company['ime'], 'green'))
-
-            offset += len(companies)
-        return
-
     def main_loop_menu(self):
         menu = {
-            "1": "Loop all companies",
-            "2": "Get company details",
+            "1": "Fetch all companies from Sudreg",
+            "2": "Fetch company details from Sudreg",
+            "3": "Get single company details by OIB",
+            "4": "Export companies to CSV",
             "9": "Exit",
         }
         self.print_table(menu)
         return input("Tvoj odabir: ") or ""
+
+    def fetch_all_companies_from_sudreg(self):
+        if self.db.is_dirty:
+            self.db.save_to_file()
+        
+        if self.db.count() != 0:
+            print(f"There are {self.db.count()} companies in the database")
+            choice = input("Do you want to continue? [y/N] ") or "n"
+
+            if choice.lower() == "n":
+                return
+
+        self.sudreg_service.fetch_all_companies()
+
+    def fetch_company_details_from_sudreg(self):
+        all = self.db.get_all_companies()
+        companies = [c for c in all if not c.status]
+
+        self.sudreg_service.fetch_company_details(companies)
+
+    def export_companies_to_csv(self):
+        file_path = input("Enter the path to the CSV file: ")
+        self.sudreg_service.export_to_csv(file_path)
 
     def start_main_loop(self):
         print("\033[2J\033[H")
@@ -95,9 +111,13 @@ class CompanyLoop:
         while True:
             choice = self.main_loop_menu()
             if choice == "1":
-                self.loop_all_companies()
+                self.fetch_all_companies_from_sudreg()
             elif choice == "2":
+                self.fetch_company_details_from_sudreg()
+            elif choice == "3":
                 self.company_details()
+            elif choice == "4":
+                self.export_companies_to_csv()
             elif choice == "9":
                 break
             else:

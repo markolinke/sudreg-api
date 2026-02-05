@@ -1,3 +1,3 @@
-from .company_loop import CompanyLoop
+from .main_menu import CompanyLoop
 
 __all__ = ["CompanyLoop"]
