@@ -152,7 +152,7 @@ class SudregService:
             writer = csv.writer(f)
             writer.writerow(['MBS', 'Ime', 'OIB', 'DJELATNOST_SIFRA', 'DJELATNOST_NAZIV', 'ZUPANIJA', 'ADRESA', 'NASELJE', 'EMAIL_ADRESE', 'TELEFONSKI_BROJEVI', 'GFI_COUNT', 'STATUS', 'NAZNAKA_IMENA', 'PRAVNI_OBLIK', 'OSTALO'])
             for company in companies:
-                writer.writerow([company.mbs, company.ime, company.oib, company.djelatnost_sifra, company.djelatnost_naziv, company.zupanija, company.adresa, company.naselje, company.email_adrese, company.telefonski_brojevi, company.ostalo, company.gfi_count, company.status, company.naznaka_imena, company.pravni_oblik])
+                writer.writerow([company.mbs, company.ime, company.oib, company.djelatnost_sifra, company.djelatnost_naziv, company.zupanija, company.adresa, company.naselje, company.email_adrese, company.telefonski_brojevi, company.gfi_count, company.status, company.naznaka_imena, company.pravni_oblik, company.ostalo])
 
     def get_company_details_from_companywall(self):
         companies = self.db.get_all_companies()
