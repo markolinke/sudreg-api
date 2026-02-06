@@ -57,7 +57,7 @@ class Company:
             "pravni_oblik": self.pravni_oblik,
         }
 
-    def inject_details(self, details: dict):
+    def inject_from_sudreg_object(self, details: dict):
         self.oib = details.get('oib')
         self.djelatnost_sifra = details.get('pretezita_djelatnost', {}).get('sifra', '')
         self.djelatnost_naziv = details.get('pretezita_djelatnost', {}).get('puni_naziv', '')
@@ -69,3 +69,21 @@ class Company:
         self.status = details.get('status', 0)
         self.naznaka_imena = details.get('tvrtka', {}).get('naznaka_imena', '')
         self.pravni_oblik = details.get('pravni_oblik', {}).get('vrsta_pravnog_oblika').get('kratica', '')
+
+    def update_with_values(self, c: "Company"):
+        if self.mbs != c.mbs:
+            raise ValueError("Companies must have the same MBS")
+
+        self.oib = c.oib if c.oib else self.oib
+        self.djelatnost_sifra = c.djelatnost_sifra if c.djelatnost_sifra else self.djelatnost_sifra
+        self.djelatnost_naziv = c.djelatnost_naziv if c.djelatnost_naziv else self.djelatnost_naziv
+        self.zupanija = c.zupanija if c.zupanija else self.zupanija
+        self.adresa = c.adresa if c.adresa else self.adresa
+        self.naselje = c.naselje if c.naselje else self.naselje
+        self.email_adrese = c.email_adrese if c.email_adrese else self.email_adrese
+        self.telefonski_brojevi = c.telefonski_brojevi if c.telefonski_brojevi else self.telefonski_brojevi
+        self.ostalo = c.ostalo if c.ostalo else self.ostalo
+        self.gfi_count = c.gfi_count if c.gfi_count else self.gfi_count
+        self.status = c.status if c.status else self.status
+        self.naznaka_imena = c.naznaka_imena if c.naznaka_imena else self.naznaka_imena
+        self.pravni_oblik = c.pravni_oblik if c.pravni_oblik else self.pravni_oblik

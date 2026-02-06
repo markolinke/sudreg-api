@@ -73,6 +73,7 @@ class CompanyLoop:
         menu = {
             "fa": "Fetch all companies from Sudreg",
             "fd": "Fetch company details from Sudreg",
+            "all_csv": "Export all companies to CSV",
             "oib": "Get single company details by OIB",
             "csv": "Export companies to CSV",
             "cw": "Get company details from CompanyWall",
@@ -105,6 +106,10 @@ class CompanyLoop:
     def get_company_details_from_companywall(self):
         self.sudreg_service.get_company_details_from_companywall()
 
+    def export_all_companies_to_csv(self):
+        file_path = input("Enter the path to the CSV file: [data/all_companies.csv]") or "data/all_companies.csv"
+        self.sudreg_service.export_all_companies_to_csv(file_path)
+
     def start_main_loop(self):
         print("\033[2J\033[H")
         print("Welcome to the company loop")
@@ -116,6 +121,8 @@ class CompanyLoop:
                 self.fetch_all_companies_from_sudreg()
             elif choice == "fd":
                 self.fetch_company_details_from_sudreg()
+            elif choice == "all_csv":
+                self.export_all_companies_to_csv()
             elif choice == "oib":
                 self.company_details()
             elif choice == "csv":

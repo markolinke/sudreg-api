@@ -10,6 +10,7 @@ class Config:
     api_url: str
     db_file_path: str
     company_filter: str
+    company_filter_out: str
     
     def __init__(self):
         self.api_env = os.getenv("api_env")
@@ -18,3 +19,4 @@ class Config:
         self.api_url = os.getenv(f"{self.api_env}_api_url")
         self.db_file_path = os.getenv("db_file_path")
         self.company_filter = os.getenv("company_filter")
+        self.company_filter_out = os.getenv("company_filter_out")

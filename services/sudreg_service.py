@@ -23,26 +23,25 @@ class SudregService:
     def fetch_all_companies(self) -> list[Company]:
         offset = 0
         status = self.db.get_fetch_job_status()
-        preserve_db = False
 
         if status and status.get('offset', 0) > 0:
             choice = input(f"Do you want to continue from offset {status.get('offset', 0)}? [Y/n] ") or "y"
             if choice.lower() == "y":
                 offset = status.get('offset', 0)
-                preserve_db = True
-            else:
-                self.db.clear(fetch_job_status=True)
-                offset = 0
     
-        if not preserve_db:
-            self.db.clear(companies=True)
-
         while True:
-            companies = self.sudreg_api.get_company_list(offset)
+            try:
+                companies = self.sudreg_api.get_company_list(offset)
+            except Exception as e:
+                if "Vaš zahtjev nije vratio ni jedan redak" in str(e):
+                    break
+                raise e
+
             if len(companies) == 0:
                 break
 
             filtered_companies = [c for c in companies if self.config.company_filter and c['ime'].lower().find(self.config.company_filter.lower()) > -1]
+            filtered_companies = [c for c in filtered_companies if not c['ime'].lower().find(self.config.company_filter_out.lower()) > -1]
             for company in filtered_companies:
                 self.db.add_company(Company(**company))
 
@@ -52,6 +51,38 @@ class SudregService:
             self.print_fetch_all_job_status(len(companies), self.db.count(), offset)
 
         return self.db.get_all_companies()
+
+    def fetch_all_companies_from_sudreg(self):
+        offset = 0
+        all: dict[str, str] = {}
+
+        while True:
+            try:
+                companies = self.sudreg_api.get_company_list(offset)
+            except Exception as e:
+                print(f"Error fetching companies: {e}")
+                break
+
+            all.update({c['mbs']: c['ime'] for c in companies})
+
+            print(f"Exported: {colored(len(all), 'yellow')} companies")
+            offset += len(companies)
+            if len(companies) < 1000:
+                break
+
+        return all
+
+    def export_all_companies_to_csv(self, file_path: str):
+        all_companies = self.fetch_all_companies_from_sudreg()
+
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+        with open(file_path, 'w') as f:
+            writer = csv.writer(f)
+            writer.writerow(['MBS', 'Ime'])
+            for mbs, ime in all_companies.items():
+                writer.writerow([mbs, ime])
 
     def fetch_company_details(self, companies: list[Company]):
         processed_count = 0
@@ -70,7 +101,7 @@ class SudregService:
 
             try:
                 details = self.sudreg_api.get_company_details_by_mbs(c.mbs)
-                c.inject_details(details)
+                c.inject_from_sudreg_object(details)
                 processed_count += 1
 
                 self.store_company_details_locally(c.mbs, details)
@@ -110,8 +141,13 @@ class SudregService:
             status['offset'] = offset
         self.db.set_fetch_job_status(status)
 
-    def export_to_csv(self, file_path: str):
+    def export_to_csv(self, file_path: str, exclude_stecaj: bool = True, exclude_no_email: bool = True):
         companies = self.db.get_all_companies()
+        if exclude_stecaj:
+            companies = [c for c in companies if c.status != 4 and c.ime.lower().find('stečaj') == -1]
+        if exclude_no_email:
+            companies = [c for c in companies if c.email_adrese and len(c.email_adrese) > 0]
+
         with open(file_path, 'w') as f:
             writer = csv.writer(f)
             writer.writerow(['MBS', 'Ime', 'OIB', 'DJELATNOST_SIFRA', 'DJELATNOST_NAZIV', 'ZUPANIJA', 'ADRESA', 'NASELJE', 'EMAIL_ADRESE', 'TELEFONSKI_BROJEVI', 'GFI_COUNT', 'STATUS', 'NAZNAKA_IMENA', 'PRAVNI_OBLIK', 'OSTALO'])

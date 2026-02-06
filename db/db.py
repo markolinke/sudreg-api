@@ -13,7 +13,12 @@ class Database:
         self.load_from_file()
 
     def add_company(self, company: Company):
-        self.companies[company.mbs] = company
+        if company.mbs in self.companies:
+            c = self.companies[company.mbs]
+            c.update_with_values(company)
+            self.companies[company.mbs] = c
+        else:
+            self.companies[company.mbs] = company
         self.is_dirty = True
 
     def get_company_my_mbs(self, mbs: str) -> Company:
