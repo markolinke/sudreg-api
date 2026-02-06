@@ -6,3 +6,4 @@ python-dotenv==1.2.1
 requests==2.32.5
 termcolor==3.3.0
 urllib3==2.6.3
+beautifulsoup4>=4.14.3

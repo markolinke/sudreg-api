@@ -1,6 +1,6 @@
 import json
 from config import Config
-from sudreg_api import SudregApiClient
+from api_clients import SudregApiClient
 from termcolor import colored
 from services import SudregService
 from db import Database
@@ -71,11 +71,12 @@ class CompanyLoop:
 
     def main_loop_menu(self):
         menu = {
-            "1": "Fetch all companies from Sudreg",
-            "2": "Fetch company details from Sudreg",
-            "3": "Get single company details by OIB",
-            "4": "Export companies to CSV",
-            "9": "Exit",
+            "fa": "Fetch all companies from Sudreg",
+            "fd": "Fetch company details from Sudreg",
+            "oib": "Get single company details by OIB",
+            "csv": "Export companies to CSV",
+            "cw": "Get company details from CompanyWall",
+            "q": "Exit",
         }
         self.print_table(menu)
         return input("Tvoj odabir: ") or ""
@@ -101,6 +102,9 @@ class CompanyLoop:
         file_path = input("Enter the path to the CSV file: ")
         self.sudreg_service.export_to_csv(file_path)
 
+    def get_company_details_from_companywall(self):
+        self.sudreg_service.get_company_details_from_companywall()
+
     def start_main_loop(self):
         print("\033[2J\033[H")
         print("Welcome to the company loop")
@@ -108,15 +112,17 @@ class CompanyLoop:
         print()
         while True:
             choice = self.main_loop_menu()
-            if choice == "1":
+            if choice == "fa":
                 self.fetch_all_companies_from_sudreg()
-            elif choice == "2":
+            elif choice == "fd":
                 self.fetch_company_details_from_sudreg()
-            elif choice == "3":
+            elif choice == "oib":
                 self.company_details()
-            elif choice == "4":
+            elif choice == "csv":
                 self.export_companies_to_csv()
-            elif choice == "9":
+            elif choice == "cw":
+                self.get_company_details_from_companywall()
+            elif choice == "q":
                 break
             else:
                 print("Invalid choice")

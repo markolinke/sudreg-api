@@ -1,12 +1,16 @@
-import csv
 import os
+import csv
 import json
+import time
 from config import Config
 from termcolor import colored
-from sudreg_api import SudregApiClient
+from api_clients import SudregApiClient, CompanyWallApiClient
 from db import Company, Database
 
 class SudregService:
+    COMPANY_DETAILS_DIR = "data/details"
+    COMPANYWALL_DETAILS_DIR = "data/companywall"
+
     sudreg_api: SudregApiClient
     db: Database
     config: Config
@@ -79,8 +83,14 @@ class SudregService:
                 print(f"Error fetching company details for {colored(c.mbs, 'yellow')} {colored(c.ime, 'green')}: {e}")
                 continue
 
-    def store_company_details_locally(self, filename: str, details: dict):
-        with open(f'data/details/{filename}.json', 'w') as f:
+    def store_company_details_locally(self, mbs: str, details: dict):
+        filename = self.get_company_details_filename(mbs)
+        with open(filename, 'w') as f:
+            json.dump(details, f, indent=2)
+
+    def store_companywall_details_locally(self, mbs: str, details: dict):
+        filename = self.get_companywall_details_filename(mbs)
+        with open(filename, 'w') as f:
             json.dump(details, f, indent=2)
 
     def print_fetch_all_job_status(self, batch_count: int, total_count: int, offset: int):
@@ -104,6 +114,36 @@ class SudregService:
         companies = self.db.get_all_companies()
         with open(file_path, 'w') as f:
             writer = csv.writer(f)
-            writer.writerow(['MBS', 'Ime', 'OIB', 'DJELATNOST_SIFRA', 'DJELATNOST_NAZIV', 'ZUPANIJA', 'ADRESA', 'NASELJE', 'EMAIL_ADRESE', 'TELEFONSKI_BROJEVI', 'OSTALO'])
+            writer.writerow(['MBS', 'Ime', 'OIB', 'DJELATNOST_SIFRA', 'DJELATNOST_NAZIV', 'ZUPANIJA', 'ADRESA', 'NASELJE', 'EMAIL_ADRESE', 'TELEFONSKI_BROJEVI', 'GFI_COUNT', 'STATUS', 'NAZNAKA_IMENA', 'PRAVNI_OBLIK', 'OSTALO'])
             for company in companies:
-                writer.writerow([company.mbs, company.ime, company.oib, company.djelatnost_sifra, company.djelatnost_naziv, company.zupanija, company.adresa, company.naselje, company.email_adrese, company.telefonski_brojevi, company.ostalo])
+                writer.writerow([company.mbs, company.ime, company.oib, company.djelatnost_sifra, company.djelatnost_naziv, company.zupanija, company.adresa, company.naselje, company.email_adrese, company.telefonski_brojevi, company.ostalo, company.gfi_count, company.status, company.naznaka_imena, company.pravni_oblik])
+
+    def get_company_details_from_companywall(self):
+        companies = self.db.get_all_companies()
+        processed_count = 0
+        companywall_api = CompanyWallApiClient(self.config, self.db)
+
+        print(f"Fetching company details for {colored(str(len(companies)), 'yellow')} companies")
+        print()
+        choice = input("Do you want to continue? [y/N] ") or "n"
+        if choice.lower() != "y":
+            return
+
+        for company in companies:
+            filename = self.get_companywall_details_filename(company.mbs)
+            if os.path.exists(filename):
+                continue
+
+            details = companywall_api.extract_company_data(company.oib)
+            processed_count += 1
+            self.store_companywall_details_locally(company.mbs, details)
+            print(colored(company.oib, 'green'), company.ime)
+
+            # wait for 1 second
+            time.sleep(1)
+
+    def get_company_details_filename(self, mbs: str):
+        return f"{self.COMPANY_DETAILS_DIR}/{mbs}.json"
+
+    def get_companywall_details_filename(self, mbs: str):
+        return f"{self.COMPANYWALL_DETAILS_DIR}/{mbs}.json"
